@@ -5,8 +5,9 @@ import { TeammateManager } from './npc/teammate.js';
 import { EnemyAiManager } from './npc/enemyAi.js';
 import { Hud } from './ui/hud.js';
 import { FeedbackPanel } from './ui/feedbackPanel.js';
+import { PhaseManager } from './phases/phaseManager.js';
 
-// Bootstrap M1 + M2: 3D Arena, Controller, Communication System & Fallback UI
+// Bootstrap M1 + M2 + M3: Greybox Arena, Controller, Communication & Phase 1 Loop
 const canvas = document.getElementById('game-canvas');
 const uiLayer = document.getElementById('ui-layer');
 
@@ -19,6 +20,18 @@ const hud = new Hud(uiLayer);
 
 const commSlot = document.getElementById('hud-comm-slot');
 const feedbackPanel = new FeedbackPanel(commSlot, teammateManager);
+
+// Initialize Phase Manager and Start Match Setup
+const phaseManager = new PhaseManager({
+  scene: world.scene,
+  camera: world.camera,
+  teammateManager,
+  enemyAiManager,
+  hud,
+  feedbackPanel
+});
+
+phaseManager.startMatchSequence();
 
 // Main Game Loop Update
 world.onUpdate((delta, time) => {
@@ -37,4 +50,4 @@ world.onUpdate((delta, time) => {
   }
 });
 
-console.log('FEP Client initialized: M2 Communication System & Fallback UI Ready');
+console.log('FEP Client initialized: M3 Phase 1 (Preparation) Gameplay Loop Ready');
