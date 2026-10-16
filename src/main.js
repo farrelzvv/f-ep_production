@@ -7,7 +7,7 @@ import { Hud } from './ui/hud.js';
 import { FeedbackPanel } from './ui/feedbackPanel.js';
 import { PhaseManager } from './phases/phaseManager.js';
 
-// Bootstrap M1 + M2 + M3: Greybox Arena, Controller, Communication & Phase 1 Loop
+// Bootstrap M1 - M4: Arena, Controller, Comm, Prep & Rotation Mechanics
 const canvas = document.getElementById('game-canvas');
 const uiLayer = document.getElementById('ui-layer');
 
@@ -38,6 +38,7 @@ world.onUpdate((delta, time) => {
   controller.update(delta);
   teammateManager.update(time, controller.camera.position);
   enemyAiManager.update(delta, time);
+  phaseManager.update(delta);
 
   // Proximity check to teammates
   const nearestTeammate = teammateManager.getNearestTeammate(controller.camera.position, 5.0);
@@ -50,4 +51,4 @@ world.onUpdate((delta, time) => {
   }
 });
 
-console.log('FEP Client initialized: M3 Phase 1 (Preparation) Gameplay Loop Ready');
+console.log('FEP Client initialized: M4 Rotation Phase & Zone Mechanics Ready');

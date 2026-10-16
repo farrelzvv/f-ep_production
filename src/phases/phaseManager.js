@@ -1,5 +1,6 @@
 import { gameState } from '../state/gameState.js';
 import { PreparationPhase } from './preparation.js';
+import { RotationPhase } from './rotation.js';
 import { MatchSetupModal } from '../ui/matchSetup.js';
 
 export class PhaseManager {
@@ -50,28 +51,33 @@ export class PhaseManager {
   }
 
   startRotationPhase() {
-    if (this.rotation) {
-      this.rotation.start();
-    } else {
-      console.log('Rotation phase ready (M4 implementation)');
-      gameState.setPhase('ROTATION');
-      gameState.activeObjective = 'Rotate towards the Safe Zone at War Action Point (Center)';
-    }
+    this.rotation = new RotationPhase(
+      this.scene,
+      this.camera,
+      this.teammateManager,
+      () => {
+        this.startWarActionPhase();
+      }
+    );
+    this.rotation.start();
   }
 
   startWarActionPhase() {
     if (this.warAction) {
       this.warAction.start();
     } else {
-      console.log('War Action phase ready (M5 implementation)');
       gameState.setPhase('WAR_ACTION');
-      gameState.activeObjective = 'Defeat remaining enemy squads at War Action Point!';
+      gameState.activeObjective = 'War Action: Defend center against converging squads!';
+      gameState.notify();
     }
   }
 
-  showResultScreen() {
-    if (this.resultScreen) {
-      this.resultScreen.show();
+  update(delta) {
+    if (gameState.currentPhase === 'ROTATION' && this.rotation) {
+      this.rotation.update(delta);
+    }
+    if (gameState.currentPhase === 'WAR_ACTION' && this.warAction) {
+      this.warAction.update(delta);
     }
   }
 }
