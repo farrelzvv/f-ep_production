@@ -27,6 +27,16 @@ body, html {
   display: block;
 }
 
+#damage-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0) 40%, rgba(239, 68, 68, 0.6) 100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  z-index: 50;
+}
+
 #ui-layer {
   position: absolute;
   top: 0;

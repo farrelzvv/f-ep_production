@@ -1,12 +1,15 @@
 import { gameState } from '../state/gameState.js';
 import { PreparationPhase } from './preparation.js';
 import { RotationPhase } from './rotation.js';
+import { WarActionPhase } from './warAction.js';
 import { MatchSetupModal } from '../ui/matchSetup.js';
+import { ResultScreenModal } from '../ui/resultScreen.js';
 
 export class PhaseManager {
-  constructor({ scene, camera, teammateManager, enemyAiManager, hud, feedbackPanel }) {
+  constructor({ scene, camera, controller, teammateManager, enemyAiManager, hud, feedbackPanel }) {
     this.scene = scene;
     this.camera = camera;
+    this.controller = controller;
     this.teammateManager = teammateManager;
     this.enemyAiManager = enemyAiManager;
     this.hud = hud;
@@ -30,6 +33,15 @@ export class PhaseManager {
         this.rotation.onInteraction(intentResult, activeTeammate);
       }
     };
+
+    // Connect player shooting during War Action (Additional Requirement 3)
+    if (this.controller) {
+      this.controller.onShoot(() => {
+        if (gameState.currentPhase === 'WAR_ACTION' && this.warAction) {
+          this.warAction.shoot();
+        }
+      });
+    }
   }
 
   startMatchSequence() {
@@ -63,21 +75,35 @@ export class PhaseManager {
   }
 
   startWarActionPhase() {
-    if (this.warAction) {
-      this.warAction.start();
-    } else {
-      gameState.setPhase('WAR_ACTION');
-      gameState.activeObjective = 'War Action: Defend center against converging squads!';
-      gameState.notify();
-    }
+    this.warAction = new WarActionPhase(
+      this.scene,
+      this.camera,
+      this.enemyAiManager,
+      this.teammateManager,
+      () => {
+        this.showResultScreen();
+      }
+    );
+    this.warAction.start();
   }
 
-  update(delta) {
+  showResultScreen() {
+    if (document.exitPointerLock) {
+      document.exitPointerLock();
+    }
+    const overlay = document.getElementById('ui-layer');
+    this.resultScreen = new ResultScreenModal(overlay, () => {
+      window.location.reload();
+    });
+    this.resultScreen.show();
+  }
+
+  update(delta, time) {
     if (gameState.currentPhase === 'ROTATION' && this.rotation) {
       this.rotation.update(delta);
     }
     if (gameState.currentPhase === 'WAR_ACTION' && this.warAction) {
-      this.warAction.update(delta);
+      this.warAction.update(delta, time);
     }
   }
 }
