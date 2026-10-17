@@ -12,27 +12,50 @@ export class PlayerController {
       backward: false,
       left: false,
       right: false,
-      sprint: false
+      sprint: false,
+      jump: false
     };
 
     // Camera angles
     this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
     this.isLocked = false;
 
-    // Position and collision
+    // Position, physics, and collision
     this.velocity = new THREE.Vector3();
     this.direction = new THREE.Vector3();
     this.arenaBounds = 115; // half-width boundary limit
     this.onShootCallback = null;
 
+    // Gravity and jump physics
+    this.gravity = -26;
+    this.jumpForce = 8.5;
+    this.isGrounded = true;
+    this.groundY = 1.8;
+
     this.setupInputs();
+  }
+
+  isInputFocused() {
+    const active = document.activeElement;
+    return !!(active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA'));
+  }
+
+  resetMovementKeys() {
+    this.keys.forward = false;
+    this.keys.backward = false;
+    this.keys.left = false;
+    this.keys.right = false;
+    this.keys.sprint = false;
+    this.keys.jump = false;
   }
 
   setupInputs() {
     // Keyboard inputs
     window.addEventListener('keydown', (e) => {
-      // If typing in input box, ignore WASD game inputs
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      // If typing in input box, ignore Space, WASD, and other game inputs
+      if (this.isInputFocused() || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
 
       switch (e.code) {
         case 'KeyW':
@@ -55,10 +78,19 @@ export class PlayerController {
         case 'ShiftRight':
           this.keys.sprint = true;
           break;
+        case 'Space':
+          e.preventDefault();
+          this.keys.jump = true;
+          break;
       }
     });
 
     window.addEventListener('keyup', (e) => {
+      if (this.isInputFocused() || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        this.resetMovementKeys();
+        return;
+      }
+
       switch (e.code) {
         case 'KeyW':
         case 'ArrowUp':
@@ -79,6 +111,9 @@ export class PlayerController {
         case 'ShiftLeft':
         case 'ShiftRight':
           this.keys.sprint = false;
+          break;
+        case 'Space':
+          this.keys.jump = false;
           break;
       }
     });
@@ -123,6 +158,11 @@ export class PlayerController {
   }
 
   update(delta) {
+    // If input is focused, reset movement keys so character doesn't slide
+    if (this.isInputFocused()) {
+      this.resetMovementKeys();
+    }
+
     // Determine movement direction
     this.direction.z = Number(this.keys.forward) - Number(this.keys.backward);
     this.direction.x = Number(this.keys.right) - Number(this.keys.left);
@@ -149,8 +189,27 @@ export class PlayerController {
       this.camera.position.add(moveVector);
     }
 
-    // Keep camera grounded at player eye height
-    this.camera.position.y = 1.8;
+    // Jump trigger (only allowed if grounded and not typing)
+    if (this.keys.jump && this.isGrounded && !this.isInputFocused()) {
+      this.velocity.y = this.jumpForce;
+      this.isGrounded = false;
+      this.keys.jump = false;
+    }
+
+    // Apply gravity and vertical movement
+    if (!this.isGrounded) {
+      this.velocity.y += this.gravity * delta;
+      this.camera.position.y += this.velocity.y * delta;
+
+      if (this.camera.position.y <= this.groundY) {
+        this.camera.position.y = this.groundY;
+        this.velocity.y = 0;
+        this.isGrounded = true;
+      }
+    } else {
+      this.camera.position.y = this.groundY;
+      this.velocity.y = 0;
+    }
 
     // Arena boundary clamp
     this.camera.position.x = Math.max(-this.arenaBounds, Math.min(this.arenaBounds, this.camera.position.x));
