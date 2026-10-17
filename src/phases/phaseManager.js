@@ -69,7 +69,8 @@ export class PhaseManager {
       this.teammateManager,
       () => {
         this.startWarActionPhase();
-      }
+      },
+      this.controller
     );
     this.rotation.start();
   }
@@ -82,7 +83,8 @@ export class PhaseManager {
       this.teammateManager,
       () => {
         this.showResultScreen();
-      }
+      },
+      this.controller
     );
     this.warAction.start();
   }

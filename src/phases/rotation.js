@@ -4,11 +4,12 @@ import { playerState } from '../player/playerState.js';
 import { WAR_ACTION_POINT } from '../scene/arena.js';
 
 export class RotationPhase {
-  constructor(scene, camera, teammateManager, onCompletePhase) {
+  constructor(scene, camera, teammateManager, onCompletePhase, controller = null) {
     this.scene = scene;
     this.camera = camera;
     this.teammateManager = teammateManager;
     this.onCompletePhase = onCompletePhase;
+    this.controller = controller;
 
     // Safe Zone parameters
     this.zoneCenter = new THREE.Vector3(WAR_ACTION_POINT.x, 0, WAR_ACTION_POINT.z);
@@ -103,8 +104,9 @@ export class RotationPhase {
       this.zoneMesh.material.opacity = 0.35;
     }
 
-    // Distance of player to zone center
-    const playerPos = new THREE.Vector2(this.camera.position.x, this.camera.position.z);
+    // Distance of player to zone center (based on character position)
+    const charPos = this.controller ? this.controller.getPlayerPosition() : this.camera.position;
+    const playerPos = new THREE.Vector2(charPos.x, charPos.z);
     const zonePos2D = new THREE.Vector2(this.zoneCenter.x, this.zoneCenter.z);
     const distToCenter = playerPos.distanceTo(zonePos2D);
 

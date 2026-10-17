@@ -10,9 +10,11 @@ export class Hud {
 
   init() {
     this.container.innerHTML = `
-      <div class="crosshair"></div>
+      <div class="crosshair">
+        <div class="crosshair-dot"></div>
+      </div>
       <div id="pointer-lock-hint" class="pointer-lock-hint">
-        Click to look & aim | Press ESC to release cursor
+        Click to aim & look | [V] Toggle 1st/3rd person | ESC to release cursor
       </div>
 
       <!-- Top Bar -->

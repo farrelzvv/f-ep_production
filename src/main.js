@@ -13,7 +13,7 @@ const uiLayer = document.getElementById('ui-layer');
 
 const world = new World(canvas);
 const arena = new Arena(world.scene);
-const controller = new PlayerController(world.camera, world.canvas);
+const controller = new PlayerController(world.camera, world.canvas, world.scene, arena.colliders);
 const teammateManager = new TeammateManager(world.scene);
 const enemyAiManager = new EnemyAiManager(world.scene);
 const hud = new Hud(uiLayer);
@@ -37,12 +37,13 @@ phaseManager.startMatchSequence();
 // Main Game Loop Update
 world.onUpdate((delta, time) => {
   controller.update(delta);
-  teammateManager.update(time, controller.camera.position);
+  const playerPos = controller.getPlayerPosition();
+  teammateManager.update(time, playerPos);
   enemyAiManager.update(delta, time);
   phaseManager.update(delta, time);
 
-  // Proximity check to teammates
-  const nearestTeammate = teammateManager.getNearestTeammate(controller.camera.position, 5.0);
+  // Proximity check to teammates: based on character position, not camera
+  const nearestTeammate = teammateManager.getNearestTeammate(playerPos, 5.0);
   feedbackPanel.setTargetTeammate(nearestTeammate);
 
   if (nearestTeammate) {

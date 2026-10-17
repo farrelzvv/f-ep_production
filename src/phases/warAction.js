@@ -3,12 +3,13 @@ import { gameState } from '../state/gameState.js';
 import { playerState } from '../player/playerState.js';
 
 export class WarActionPhase {
-  constructor(scene, camera, enemyAiManager, teammateManager, onCompleteMatch) {
+  constructor(scene, camera, enemyAiManager, teammateManager, onCompleteMatch, controller = null) {
     this.scene = scene;
     this.camera = camera;
     this.enemyAiManager = enemyAiManager;
     this.teammateManager = teammateManager;
     this.onCompleteMatch = onCompleteMatch;
+    this.controller = controller;
 
     this.isActive = false;
     this.raycaster = new THREE.Raycaster();
@@ -28,7 +29,7 @@ export class WarActionPhase {
     gameState.notify();
   }
 
-  // Hitscan player shooting (Additional Requirement 3)
+  // Hitscan player shooting
   shoot() {
     if (!this.isActive) return;
 
@@ -39,7 +40,11 @@ export class WarActionPhase {
       return;
     }
 
-    // Hitscan raycast from camera center
+    if (this.controller && this.controller.onPlayerShoot) {
+      this.controller.onPlayerShoot();
+    }
+
+    // Hitscan raycast from camera center (crosshair)
     this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
 
     const enemyMeshes = this.enemyAiManager.getAliveEnemies().map((e) => e.mesh);
@@ -60,20 +65,22 @@ export class WarActionPhase {
         }
       }
     } else {
-      // Ray goes into distance
+      // Ray goes into distance along camera center
       hitPoint = this.camera.position
         .clone()
         .add(this.camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(80));
     }
 
-    // Visual bullet tracer
+    // Visual bullet tracer originating from character
     this.createTracer(hitPoint);
     this.updateObjective();
   }
 
   createTracer(targetPos) {
-    // Tracer starts slightly below camera to mimic gun barrel
-    const startPos = this.camera.position.clone().add(new THREE.Vector3(0.2, -0.2, -0.4));
+    // Tracer originates from character model weapon
+    const startPos = this.controller
+      ? this.controller.getMuzzlePosition()
+      : this.camera.position.clone().add(new THREE.Vector3(0.2, -0.2, -0.4));
     const points = [startPos, targetPos];
     const geo = new THREE.BufferGeometry().setFromPoints(points);
     const mat = new THREE.LineBasicMaterial({ color: 0xfef08a, linewidth: 2 });
@@ -91,11 +98,12 @@ export class WarActionPhase {
   update(delta, time) {
     if (!this.isActive) return;
 
-    // Run combat state machine
+    // Run combat state machine targeting player character position
+    const playerTargetPos = this.controller ? this.controller.getPlayerPosition() : this.camera.position;
     this.enemyAiManager.updateCombat(
       delta,
       time,
-      this.camera.position,
+      playerTargetPos,
       this.teammateManager.teammates,
       (damage) => {
         playerState.takeDamage(damage);
