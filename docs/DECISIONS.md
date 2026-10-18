@@ -35,3 +35,15 @@ Dokumen ini mencatat keputusan teknis dan desain yang diambil untuk menjaga kese
 - **Shooting Mekanik:** Klik kiri mouse menembakkan raycast hitscan dari tengah kamera.
 - **Statistik & Squad Readiness:** Squad Readiness yang dikumpulkan dari Phase 1 & Phase 2 memberikan buff HP dan damage ke squad pemain di Phase 3.
 - **AI Behavior:** FSM sederhana (Move to Center -> Target Nearest Enemy -> Attack with interval).
+
+## 6. Model Karakter Hinaly (public/models/hinaly.glb) & Halaman Uji
+- **Halaman Uji Mandiri:** Dibuat halaman `test-model.html` dan script `src/test-model.js` dengan konfigurasi multi-page di `vite.config.js`. Halaman ini menggunakan `GLTFLoader` dan `OrbitControls` untuk memuat dan menginspeksi model 3D tanpa mengubah atau mengganggu loop game utama.
+- **Hasil Pemeriksaan Model `public/models/hinaly.glb`:**
+  - **Daftar Animation Clip:** **0 clip** (tidak ada track animasi dalam file glTF/GLB). Model terdeteksi sebagai static mesh tunggal (`tripo_mesh_...`) hasil generator Tripo 2.0.
+  - **Tinggi Model (Height):** **0.998 meter** (Bounding Box: $0.518\text{ m} \times 0.998\text{ m} \times 0.463\text{ m}$; posisi $Y_{min} = 0.000$, $Y_{max} = 0.998$).
+  - **Jumlah Segitiga (Triangles):** **18.604 segitiga** (dari 55.812 indeks dan 23.027 vertex).
+  - **Pemutaran Clip Pertama:** Karena file model tidak memiliki animation clip (`gltf.animations.length === 0`), `AnimationMixer` tidak memutar animasi dan status pemutaran menampilkan notifikasi bahwa model berstatus static mesh (0 clip).
+- **Catatan & Rekomendasi Integrasi:**
+  - Tinggi model dasar adalah $\approx 1.0\text{ m}$. Untuk disesuaikan dengan proporsi karakter game ($1.8\text{ m}$ eye level), model perlu dinaikkan skalanya sekitar $1.7\times - 1.8\times$.
+  - Untuk animasi gerak (idle, walk, run, jump, shoot), model perlu di-rig dan diberi skeleton (misalnya via Mixamo / Blender) sebelum klip animasi dapat diputar.
+
