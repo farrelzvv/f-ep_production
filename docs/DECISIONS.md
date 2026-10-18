@@ -47,3 +47,32 @@ Dokumen ini mencatat keputusan teknis dan desain yang diambil untuk menjaga kese
   - Tinggi model dasar adalah $\approx 1.0\text{ m}$. Untuk disesuaikan dengan proporsi karakter game ($1.8\text{ m}$ eye level), model perlu dinaikkan skalanya sekitar $1.7\times - 1.8\times$.
   - Untuk animasi gerak (idle, walk, run, jump, shoot), model perlu di-rig dan diberi skeleton (misalnya via Mixamo / Blender) sebelum klip animasi dapat diputar.
 
+## 7. Integrasi Model Karakter Pemain Hinaly (M8)
+- **Model Utama & Rangka:**
+  - File utama: `public/models/Hinaly_Idle.fbx` (berisi model skinned mesh, armature/rangka tulang Mixamo, dan klip animasi idle bawaan).
+- **Animasi Tambahan (Rangka Identik):**
+  - `public/models/Hinaly_Walking.fbx`
+  - `public/models/Hinaly_Running.fbx`
+  - `public/models/Hinaly_Jump.fbx`
+- **Daftar & Pemetaan Clip Animasi:**
+  - `idle`: Klip `mixamo.com` dari `Hinaly_Idle.fbx` (durasi 8.33s, LoopRepeat).
+  - `walk`: Klip `mixamo.com` dari `Hinaly_Walking.fbx` (durasi 0.97s, LoopRepeat).
+  - `run`: Klip `mixamo.com` dari `Hinaly_Running.fbx` (durasi 0.70s, LoopRepeat).
+  - `jump`: Klip `mixamo.com` dari `Hinaly_Jump.fbx` (durasi 1.67s, LoopOnce, clampWhenFinished).
+  - **FSM & Crossfade:** Transisi antar animasi ditangani dengan `fadeToAction(name, duration)` (durasi crossfade 0.15s - 0.25s) berdasarkan status: diam (`idle`), bergerak biasa (`walk`), sprint (`run`), dan melompat/di udara (`jump`).
+- **Pemilihan Tekstur:**
+  - Dipilih `public/models/textures/Hinaly_basecolor.png` (disalin dari dan kompatibel dengan `Hinaly_basecolor.JPEG` sebagai tekstur warna utama / albedo terbesar: 126.9 KB, 512x512 piksel).
+  - `texture.colorSpace = THREE.SRGBColorSpace` untuk reproduksi warna yang benar.
+  - `texture.flipY = false` karena UV model mengikuti konvensi Tripo/glTF (nilai V=0 berada di bagian atas/kepala; nilai `flipY = true` menyebabkan tekstur terbalik).
+- **Auto-Scale & Penjajaran Tanah:**
+  - Skala dihitung otomatis: `scale = targetHeight (1.8m) / rawHeight (1.00m) ≈ 1.800×` agar tinggi karakter pas dengan ukuran arena dan tinggi mata controller.
+  - Kaki dijajarkan tepat ke permukaan tanah ($y = 0$) melalui `fbx.position.y = -scaledBox.min.y`.
+- **Arah Hadap & Tembakan:**
+  - Model FBX secara alami menghadap arah $+Z$.
+  - Saat bergerak, model berotasi menghadap arah gerak `Math.atan2(moveVector.x, moveVector.z)`.
+  - Saat menembak, model menghadap arah bidikan horizontal kamera dan tracer keluar dari moncong senjata/tangan kanan karakter.
+- **Sistem Fallback & Lingkup:**
+  - Karakter pemain langsung memunculkan capsule sebagai fallback sementara saat FBX di-load. Jika file FBX tidak ditemukan atau gagal dimuat, capsule tetap aktif tanpa mengganggu permainan.
+  - Hanya karakter pemain yang diubah menjadi Hinaly; NPC rekan tim dan bot musuh tetap menggunakan capsule greybox.
+
+

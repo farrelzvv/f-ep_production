@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { playerState } from './playerState.js';
 
 export class PlayerController {
@@ -44,7 +45,16 @@ export class PlayerController {
     this.camDistance = 3.8;
     this.camHeightOffset = 0.4;
 
+    // Model and Animation State
     this.characterMesh = null;
+    this.fallbackMeshGroup = null;
+    this.fbxModelGroup = null;
+    this.mixer = null;
+    this.actions = {};
+    this.currentAction = null;
+    this.currentActionName = 'idle';
+    this.isFbxLoaded = false;
+
     if (this.scene) {
       this.createCharacterMesh();
     }
@@ -55,6 +65,9 @@ export class PlayerController {
 
   createCharacterMesh() {
     this.characterMesh = new THREE.Group();
+
+    // 1. Build Fallback Procedural Capsule Character Mesh
+    this.fallbackMeshGroup = new THREE.Group();
 
     // Body (Capsule geometry)
     const bodyGeo = new THREE.CapsuleGeometry(0.45, 0.9, 8, 16);
@@ -67,7 +80,7 @@ export class PlayerController {
     body.position.y = 0.95;
     body.castShadow = true;
     body.receiveShadow = true;
-    this.characterMesh.add(body);
+    this.fallbackMeshGroup.add(body);
 
     // Tactical Chest Vest / Armor
     const vestGeo = new THREE.BoxGeometry(0.68, 0.55, 0.48);
@@ -78,7 +91,7 @@ export class PlayerController {
     const vest = new THREE.Mesh(vestGeo, vestMat);
     vest.position.set(0, 1.05, 0);
     vest.castShadow = true;
-    this.characterMesh.add(vest);
+    this.fallbackMeshGroup.add(vest);
 
     // Helmet / Head
     const headGeo = new THREE.BoxGeometry(0.46, 0.42, 0.44);
@@ -89,7 +102,7 @@ export class PlayerController {
     const head = new THREE.Mesh(headGeo, headMat);
     head.position.set(0, 1.58, 0);
     head.castShadow = true;
-    this.characterMesh.add(head);
+    this.fallbackMeshGroup.add(head);
 
     // Visor (Facing forward towards +Z)
     const visorGeo = new THREE.BoxGeometry(0.48, 0.18, 0.22);
@@ -100,7 +113,7 @@ export class PlayerController {
     });
     const visor = new THREE.Mesh(visorGeo, visorMat);
     visor.position.set(0, 1.6, 0.16);
-    this.characterMesh.add(visor);
+    this.fallbackMeshGroup.add(visor);
 
     // Shoulder Pads / Accents
     const shoulderGeo = new THREE.BoxGeometry(0.2, 0.18, 0.25);
@@ -109,8 +122,8 @@ export class PlayerController {
     leftShoulder.position.set(-0.35, 1.3, 0);
     const rightShoulder = new THREE.Mesh(shoulderGeo, shoulderMat);
     rightShoulder.position.set(0.35, 1.3, 0);
-    this.characterMesh.add(leftShoulder);
-    this.characterMesh.add(rightShoulder);
+    this.fallbackMeshGroup.add(leftShoulder);
+    this.fallbackMeshGroup.add(rightShoulder);
 
     // Weapon / Rifle held in hands pointing towards +Z
     const gunGeo = new THREE.BoxGeometry(0.12, 0.16, 0.65);
@@ -122,7 +135,7 @@ export class PlayerController {
     const gun = new THREE.Mesh(gunGeo, gunMat);
     gun.position.set(0.32, 1.15, 0.35);
     gun.castShadow = true;
-    this.characterMesh.add(gun);
+    this.fallbackMeshGroup.add(gun);
 
     // Weapon barrel tip
     const barrelGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.25, 8);
@@ -130,19 +143,151 @@ export class PlayerController {
     const barrel = new THREE.Mesh(barrelGeo, barrelMat);
     barrel.rotation.x = Math.PI / 2;
     barrel.position.set(0.32, 1.15, 0.75);
-    this.characterMesh.add(barrel);
+    this.fallbackMeshGroup.add(barrel);
 
     // Role beacon on top
     const beaconGeo = new THREE.OctahedronGeometry(0.18);
     const beaconMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
     const beacon = new THREE.Mesh(beaconGeo, beaconMat);
     beacon.position.y = 2.05;
-    this.characterMesh.add(beacon);
+    this.fallbackMeshGroup.add(beacon);
 
+    this.characterMesh.add(this.fallbackMeshGroup);
     this.characterMesh.position.copy(this.position);
     this.characterMesh.visible = (this.cameraMode === 'third_person');
 
     this.scene.add(this.characterMesh);
+
+    // 2. Load Hinaly FBX model and animations (async with fallback)
+    this.loadHinalyModel();
+  }
+
+  async loadHinalyModel() {
+    try {
+      const fbxLoader = new FBXLoader();
+      const textureLoader = new THREE.TextureLoader();
+
+      // Parallel fetch of main model and animation FBX files
+      const [idleFbx, walkFbx, runFbx, jumpFbx] = await Promise.all([
+        fbxLoader.loadAsync('/models/Hinaly_Idle.fbx'),
+        fbxLoader.loadAsync('/models/Hinaly_Walking.fbx'),
+        fbxLoader.loadAsync('/models/Hinaly_Running.fbx'),
+        fbxLoader.loadAsync('/models/Hinaly_Jump.fbx')
+      ]);
+
+      // Load primary color texture (prefer PNG, fallback to JPEG)
+      const texturePaths = [
+        '/models/textures/Hinaly_basecolor.png',
+        '/models/textures/Hinaly_basecolor.JPEG'
+      ];
+
+      let baseColorMap = null;
+      for (const p of texturePaths) {
+        try {
+          baseColorMap = await new Promise((resolve, reject) => {
+            textureLoader.load(p, resolve, undefined, reject);
+          });
+          if (baseColorMap) break;
+        } catch {
+          // try next path
+        }
+      }
+
+      if (baseColorMap) {
+        baseColorMap.colorSpace = THREE.SRGBColorSpace;
+        baseColorMap.flipY = false;
+      }
+
+      // Apply texture & shadows to all meshes in Hinaly
+      idleFbx.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+          if (baseColorMap && child.material) {
+            child.material.map = baseColorMap;
+            child.material.color.setHex(0xffffff);
+            child.material.needsUpdate = true;
+          }
+        }
+      });
+
+      // Auto-scale to match target game height (1.8m)
+      const box = new THREE.Box3().setFromObject(idleFbx);
+      const rawHeight = box.max.y - box.min.y;
+      const targetHeight = 1.8;
+      const scale = rawHeight > 0 ? targetHeight / rawHeight : 1.8;
+      idleFbx.scale.setScalar(scale);
+
+      // Align model feet to y = 0 and center horizontally in local space
+      const scaledBox = new THREE.Box3().setFromObject(idleFbx);
+      idleFbx.position.y = -scaledBox.min.y;
+      idleFbx.position.x = -(scaledBox.min.x + scaledBox.max.x) / 2;
+      idleFbx.position.z = -(scaledBox.min.z + scaledBox.max.z) / 2;
+
+      // Setup AnimationMixer and extract animation clips
+      this.mixer = new THREE.AnimationMixer(idleFbx);
+
+      const clips = {
+        idle: idleFbx.animations && idleFbx.animations.length > 0 ? idleFbx.animations[0].clone() : null,
+        walk: walkFbx.animations && walkFbx.animations.length > 0 ? walkFbx.animations[0].clone() : null,
+        run: runFbx.animations && runFbx.animations.length > 0 ? runFbx.animations[0].clone() : null,
+        jump: jumpFbx.animations && jumpFbx.animations.length > 0 ? jumpFbx.animations[0].clone() : null
+      };
+
+      this.actions = {};
+      for (const [name, clip] of Object.entries(clips)) {
+        if (clip) {
+          clip.name = name;
+          const action = this.mixer.clipAction(clip);
+          if (name === 'jump') {
+            action.setLoop(THREE.LoopOnce);
+            action.clampWhenFinished = true;
+          }
+          this.actions[name] = action;
+        }
+      }
+
+      // Start initial animation in idle state
+      if (this.actions.idle) {
+        this.actions.idle.play();
+        this.currentAction = this.actions.idle;
+        this.currentActionName = 'idle';
+      }
+
+      // Replace fallback capsule mesh with Hinaly model
+      if (this.fallbackMeshGroup) {
+        this.characterMesh.remove(this.fallbackMeshGroup);
+      }
+      this.fbxModelGroup = idleFbx;
+      this.characterMesh.add(idleFbx);
+      this.isFbxLoaded = true;
+
+      console.log('PlayerController: Hinaly FBX model and animations successfully mounted!');
+    } catch (err) {
+      console.warn('PlayerController: Failed to load Hinaly FBX, keeping capsule fallback.', err);
+    }
+  }
+
+  fadeToAction(name, duration = 0.2) {
+    if (!this.actions || !this.actions[name]) return;
+    if (this.currentActionName === name) return;
+
+    const prevAction = this.currentAction;
+    const nextAction = this.actions[name];
+
+    this.currentAction = nextAction;
+    this.currentActionName = name;
+
+    if (prevAction) {
+      prevAction.fadeOut(duration);
+    }
+
+    nextAction
+      .reset()
+      .setEffectiveTimeScale(1)
+      .setEffectiveWeight(1)
+      .fadeIn(duration)
+      .play();
   }
 
   isInputFocused() {
@@ -433,6 +578,26 @@ export class PlayerController {
     if (this.characterMesh) {
       this.characterMesh.position.copy(this.position);
       this.characterMesh.visible = (this.cameraMode === 'third_person');
+    }
+
+    // Update Animation Mixer and crossfade states (idle, walk, run, jump)
+    if (this.mixer) {
+      this.mixer.update(delta);
+    }
+
+    if (this.isFbxLoaded && this.actions) {
+      const isMoving = this.direction.lengthSq() > 0;
+      if (!this.isGrounded) {
+        this.fadeToAction('jump', 0.15);
+      } else if (isMoving) {
+        if (this.keys.sprint) {
+          this.fadeToAction('run', 0.2);
+        } else {
+          this.fadeToAction('walk', 0.2);
+        }
+      } else {
+        this.fadeToAction('idle', 0.2);
+      }
     }
 
     // Update camera position to follow character with collision avoidance

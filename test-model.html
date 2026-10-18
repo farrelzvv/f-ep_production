@@ -212,8 +212,16 @@
       </div>
 
       <div class="stat-group">
-        <div class="stat-label">Model File</div>
-        <div class="stat-value" style="font-size: 0.9rem; font-family: monospace;">public/models/hinaly.glb</div>
+        <div class="stat-label">Model Target</div>
+        <select id="model-select" style="width: 100%; padding: 6px 10px; background: #1e293b; color: #f8fafc; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; font-size: 0.85rem; margin-top: 4px;">
+          <option value="fbx" selected>Hinaly FBX (Animated + Textures)</option>
+          <option value="glb">Hinaly GLB (Static Mesh)</option>
+        </select>
+      </div>
+
+      <div class="stat-group">
+        <div class="stat-label">File Sumber</div>
+        <div id="model-file-name" class="stat-value" style="font-size: 0.85rem; font-family: monospace;">public/models/Hinaly_Idle.fbx</div>
       </div>
 
       <div class="stat-group">
@@ -235,12 +243,23 @@
         </div>
       </div>
 
+      <!-- Animation Control Buttons (FBX Mode) -->
+      <div id="anim-buttons-group" class="stat-group" style="margin-top: 10px;">
+        <div class="stat-label">Pilih Animasi (Crossfade)</div>
+        <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
+          <button class="btn-anim" data-anim="idle" style="padding: 4px 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Idle</button>
+          <button class="btn-anim" data-anim="walk" style="padding: 4px 10px; background: #334155; color: white; border: none; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Walk</button>
+          <button class="btn-anim" data-anim="run" style="padding: 4px 10px; background: #334155; color: white; border: none; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Run</button>
+          <button class="btn-anim" data-anim="jump" style="padding: 4px 10px; background: #334155; color: white; border: none; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Jump</button>
+        </div>
+      </div>
+
       <div class="action-status">
         <div id="status-indicator" class="status-indicator idle"></div>
         <span id="playback-status">Status pemutaran clip...</span>
       </div>
 
-      <div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px;">
         <a href="/" class="btn-back">← Kembali ke Game Utama</a>
       </div>
     </div>
