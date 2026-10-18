@@ -14,6 +14,7 @@ const uiLayer = document.getElementById('ui-layer');
 const world = new World(canvas);
 const arena = new Arena(world.scene);
 const controller = new PlayerController(world.camera, world.canvas, world.scene, arena.colliders);
+world.playerRef = () => controller.getPlayerPosition();
 const teammateManager = new TeammateManager(world.scene);
 const enemyAiManager = new EnemyAiManager(world.scene);
 const hud = new Hud(uiLayer);

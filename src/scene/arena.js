@@ -23,32 +23,36 @@ export class Arena {
   }
 
   createGround() {
-    // Main terrain plane
+    // Soft green grass
     const groundGeo = new THREE.PlaneGeometry(240, 240);
     const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x222831,
-      roughness: 0.8,
-      metalness: 0.1
+      color: 0x8fbf6f,
+      roughness: 0.9,
+      metalness: 0.0,
+      flatShading: true
     });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    // Subtle grid helper for tactical battle royale greybox aesthetic
-    const grid = new THREE.GridHelper(240, 48, 0x393e46, 0x2d3748);
+    // Subtle path grid – light grey with cream tones
+    const grid = new THREE.GridHelper(240, 48, 0xc8c0a8, 0xd4cdb4);
     grid.position.y = 0.02;
+    grid.material.opacity = 0.3;
+    grid.material.transparent = true;
     this.scene.add(grid);
   }
 
   createPerimeterWalls() {
-    // 4 outer boundary walls to keep player inside arena
+    // 4 outer boundary walls – salmon / terracotta pastel
     const wallHeight = 6;
     const wallThickness = 2;
     const size = 240;
     const wallMat = new THREE.MeshStandardMaterial({
-      color: 0x1f2937,
-      roughness: 0.7
+      color: 0xd4a08a,
+      roughness: 0.8,
+      flatShading: true
     });
 
     const configs = [
@@ -71,18 +75,19 @@ export class Arena {
 
   createBasePlatforms() {
     for (const base of BASES) {
-      // Cylindrical platform
+      // Cylindrical platform – cream / beige
       const platGeo = new THREE.CylinderGeometry(12, 13, 0.4, 32);
       const platMat = new THREE.MeshStandardMaterial({
-        color: 0x2a324b,
-        roughness: 0.6
+        color: 0xe8dcc8,
+        roughness: 0.7,
+        flatShading: true
       });
       const platform = new THREE.Mesh(platGeo, platMat);
       platform.position.set(base.x, 0.2, base.z);
       platform.receiveShadow = true;
       this.scene.add(platform);
 
-      // Base border ring
+      // Base border ring (keep team color)
       const ringGeo = new THREE.RingGeometry(11.5, 12.2, 32);
       const ringMat = new THREE.MeshBasicMaterial({
         color: base.color,
@@ -93,7 +98,7 @@ export class Arena {
       ring.position.set(base.x, 0.41, base.z);
       this.scene.add(ring);
 
-      // Simple supply boxes in base (primitives)
+      // Simple supply boxes in base
       this.createSupplyCrate(base.x - 4, base.z - 3);
       this.createSupplyCrate(base.x - 3, base.z - 4);
     }
@@ -102,8 +107,9 @@ export class Arena {
   createSupplyCrate(x, z) {
     const crateGeo = new THREE.BoxGeometry(1.4, 1.2, 1.4);
     const crateMat = new THREE.MeshStandardMaterial({
-      color: 0x4b5563,
-      roughness: 0.5
+      color: 0xc4b896,
+      roughness: 0.6,
+      flatShading: true
     });
     const crate = new THREE.Mesh(crateGeo, crateMat);
     crate.position.set(x, 0.6, z);
@@ -114,7 +120,7 @@ export class Arena {
   }
 
   createWarActionPoint() {
-    // Central circular arena zone
+    // Central circular arena zone – light stone grey
     const centerGeo = new THREE.CylinderGeometry(
       WAR_ACTION_POINT.radius,
       WAR_ACTION_POINT.radius + 1,
@@ -122,15 +128,16 @@ export class Arena {
       48
     );
     const centerMat = new THREE.MeshStandardMaterial({
-      color: 0x1e293b,
-      roughness: 0.5
+      color: 0xd9d0c0,
+      roughness: 0.6,
+      flatShading: true
     });
     const centerMesh = new THREE.Mesh(centerGeo, centerMat);
     centerMesh.position.set(0, 0.15, 0);
     centerMesh.receiveShadow = true;
     this.scene.add(centerMesh);
 
-    // Glowing boundary ring
+    // Glowing boundary ring (keep red for gameplay clarity)
     const ringGeo = new THREE.RingGeometry(
       WAR_ACTION_POINT.radius - 0.5,
       WAR_ACTION_POINT.radius,
@@ -145,12 +152,13 @@ export class Arena {
     ring.position.set(0, 0.32, 0);
     this.scene.add(ring);
 
-    // Central Pillar / Beacon monument
+    // Central Pillar / Beacon monument – mint green
     const pillarGeo = new THREE.BoxGeometry(3, 14, 3);
     const pillarMat = new THREE.MeshStandardMaterial({
-      color: 0x334155,
-      roughness: 0.3,
-      metalness: 0.4
+      color: 0xa8d8b9,
+      roughness: 0.4,
+      metalness: 0.1,
+      flatShading: true
     });
     const pillar = new THREE.Mesh(pillarGeo, pillarMat);
     pillar.position.set(0, 7, 0);
@@ -159,14 +167,14 @@ export class Arena {
     this.scene.add(pillar);
     this.colliders.push(pillar);
 
-    // Light beacon atop the pillar
-    const lightBeacon = new THREE.PointLight(0xef4444, 2, 40);
+    // Light beacon atop the pillar (softer warm glow)
+    const lightBeacon = new THREE.PointLight(0xffe0a0, 1.5, 40);
     lightBeacon.position.set(0, 15, 0);
     this.scene.add(lightBeacon);
   }
 
   createCoverObstacles() {
-    // Tactical barriers and shelters spread between bases and center
+    // Tactical barriers – pastel building tones
     const obstacleLocations = [
       { x: 0, z: 35, w: 6, h: 2.2, d: 1.5, rot: 0 },
       { x: -35, z: 10, w: 1.5, h: 2.2, d: 6, rot: 0.4 },
@@ -180,14 +188,17 @@ export class Arena {
       { x: 12, z: -12, w: 3, h: 2, d: 3, rot: 0 }
     ];
 
-    const obsMat = new THREE.MeshStandardMaterial({
-      color: 0x475569,
-      roughness: 0.7
-    });
+    // Alternate salmon and krem colours for variety
+    const obsMats = [
+      new THREE.MeshStandardMaterial({ color: 0xe8a090, roughness: 0.7, flatShading: true }),  // salmon
+      new THREE.MeshStandardMaterial({ color: 0xddd8c4, roughness: 0.7, flatShading: true }),  // cream
+      new THREE.MeshStandardMaterial({ color: 0xa8d8b9, roughness: 0.7, flatShading: true })   // mint green
+    ];
 
-    for (const loc of obstacleLocations) {
+    for (let i = 0; i < obstacleLocations.length; i++) {
+      const loc = obstacleLocations[i];
       const geo = new THREE.BoxGeometry(loc.w, loc.h, loc.d);
-      const mesh = new THREE.Mesh(geo, obsMat);
+      const mesh = new THREE.Mesh(geo, obsMats[i % obsMats.length]);
       mesh.position.set(loc.x, loc.h / 2, loc.z);
       mesh.rotation.y = loc.rot;
       mesh.castShadow = true;
